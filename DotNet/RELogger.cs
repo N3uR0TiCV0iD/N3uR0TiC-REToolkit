@@ -4,9 +4,13 @@ using System.Text;
 using System.Reflection;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 public static class RELogger
 {
+    [DllImport("kernel32")]
+    public static extern bool AllocConsole();
+
     static HashSet<string> seenLogs;
     static readonly StreamWriter logWriter;
     static readonly StreamWriter methodsLog;

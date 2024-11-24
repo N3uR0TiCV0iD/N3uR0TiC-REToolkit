@@ -1,0 +1,38 @@
+; EzVirtualQuery(address)
+; address - [ebp+8] => [esp+0x24]
+; ========================
+; Usage:
+; push esi
+; call EzVirtualQuery
+; je InvalidPointerHandler
+; ========================
+EzVirtualQuery:
+	pushad
+
+	mov ecx, [esp+0x24]			; ecx = address
+
+	sub esp, 0x1C				; Allocate MEMORY_BASIC_INFORMATION (0x1C bytes)
+	lea ebx, [esp]				; ebx = pointer to MEMORY_BASIC_INFORMATION
+
+	push 0x1C				; dwLength = sizeof(MEMORY_BASIC_INFORMATION)
+	push ebx				; lpBuffer = pointer to MEMORY_BASIC_INFORMATION
+	push ecx				; lpAddress = address (parameter)
+	call dword ptr [&VirtualQuery]		; Call VirtualQuery | NOTE: _stdcall | NOTE: Make sure to put the "Symbol import address"
+
+	test eax, eax
+	je EzVirtualQuery_return		; [2 bytes] if (!VirtualQuery(...)) jmp EzVirtualQuery_return
+
+	cmp dword ptr [ebx+0x10], 0x1000
+	jne EzVirtualQuery_fail			; [2 bytes] if (MEMORY_BASIC_INFORMATION.State != MEM_COMMIT (0x1000)) jmp EzVirtualQuery_fail
+
+	cmp dword ptr [ebx+0x14], 0x04
+	je EzVirtualQuery_return			; [2 bytes] if (MEMORY_BASIC_INFORMATION.Protect == PAGE_READWRITE (0x04)) jmp EzVirtualQuery_return
+
+EzVirtualQuery_fail:
+	xor eax, eax
+
+EzVirtualQuery_return:
+	add esp, 0x1C				; Deallocate MEMORY_BASIC_INFORMATION (0x1C bytes)
+	test eax, eax
+	popad
+	ret 4					; Pop passed "address" parameter (stdcall convention)
