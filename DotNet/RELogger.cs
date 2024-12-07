@@ -11,6 +11,14 @@ public static class RELogger
     [DllImport("kernel32")]
     public static extern bool AllocConsole();
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GetStdHandle(int nStdHandle);
+
+    [DllImport("kernel32.dll")]
+    private static extern bool WriteConsole(IntPtr hConsoleOutput, string lpBuffer, uint nNumberOfCharsToWrite, out uint lpNumberOfCharsWritten, IntPtr lpReserved);
+
+    static bool writeToConsole;
+    static IntPtr consoleHandle;
     static HashSet<string> seenLogs;
     static readonly StreamWriter logWriter;
     static readonly StreamWriter methodsLog;
@@ -23,6 +31,17 @@ public static class RELogger
         methodsLog = new StreamWriter($"{gameDirectory}\\Methods.log");
         logCooldowns = new Dictionary<string, DateTime>();
         seenLogs = new HashSet<string>();
+    }
+
+    public static void EnableConsoleLog()
+    {
+        const int STD_OUTPUT_HANDLE = -11;
+        if (!writeToConsole)
+        {
+            AllocConsole();
+            consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+            writeToConsole = consoleHandle != IntPtr.Zero;
+        }
     }
 
     public static void LogOnce(string text, string key)
@@ -128,8 +147,13 @@ public static class RELogger
 
     private static void LogWithTimestamp(StreamWriter streamWriter, string text)
     {
-        string timestamp = DateTime.Now.ToString("HH:mm:ss");
-        streamWriter.WriteLine($"[{timestamp}] {text}");
+        var timestamp = DateTime.Now.ToString("HH:mm:ss");
+        var logText = $"[{timestamp}] {text}\n";
+        streamWriter.Write(logText);
         streamWriter.Flush();
+        if (writeToConsole)
+        {
+            WriteConsole(consoleHandle, logText, (uint)logText.Length, out _, IntPtr.Zero);
+        }
     }
 }
