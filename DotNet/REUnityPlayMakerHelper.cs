@@ -78,7 +78,7 @@ public static class REUnityPlayMakerHelper
         return false;
     }
 
-    public static void LogFSMStates(GameObject gameObject)
+    public static void DumpFSMStates(GameObject gameObject)
     {
         var prefix = "";
         var stringBuilder = new StringBuilder();
